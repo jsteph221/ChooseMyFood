@@ -5,14 +5,24 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="elapse.choosemyfood.MainActivity">
-
+    <Toolbar
+        android:id="@+id/my_toolbar"
+        android:layout_width="391dp"
+        android:layout_height="69dp"
+        android:background="?attr/colorPrimary"
+        android:elevation="4dp"
+        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
+        android:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+        tools:layout_editor_absoluteY="0dp"
+        android:layout_marginRight="8dp"
+        app:layout_constraintRight_toRightOf="parent" />
     <ImageButton
         android:id="@+id/imageButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:srcCompat="@android:drawable/ic_menu_preferences"
-        tools:layout_editor_absoluteX="320dp"
-        tools:layout_editor_absoluteY="2dp" />
+        tools:layout_editor_absoluteX="289dp"
+        tools:layout_editor_absoluteY="16dp" />
 
     <ImageButton
         android:id="@+id/imageButton2"
@@ -20,7 +30,7 @@
         android:layout_height="wrap_content"
         android:onClick="getRestaurant"
         app:srcCompat="@android:drawable/ic_media_play"
-        tools:layout_editor_absoluteX="92dp"
-        tools:layout_editor_absoluteY="412dp" />
+        tools:layout_editor_absoluteX="148dp"
+        tools:layout_editor_absoluteY="278dp" />
 
 </android.support.constraint.ConstraintLayout>
