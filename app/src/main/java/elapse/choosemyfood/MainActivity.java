@@ -1,16 +1,23 @@
 package elapse.choosemyfood;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.location.LocationListener;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.AsyncTaskLoader;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import com.android.volley.RequestQueue;
@@ -21,7 +28,9 @@ import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResponse;
@@ -46,16 +55,21 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Random;
 
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
-public class MainActivity extends AppCompatActivity implements OnConnectionFailedListener  {
+public class MainActivity extends AppCompatActivity implements OnConnectionFailedListener {
     private static final String TAG = "Main_Activity";
     private static final String baseUrl = "https://maps.googleapis.com/maps/api/place/textsearch/json?";
     private static final String googleApiKey = "AIzaSyCcndRN1-FqszyIMNj8m4Goa2C3U5rofqM";
     //Search Options
-    private String[] keywords;
+    private String[] keywords ={};
     private Location mCurrentLocation;
     private String radius = "25000"; //Max 50000
     private String minPrice = "0";
@@ -65,7 +79,8 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
 
 
     private FusedLocationProviderClient mFusedLocationClient;
-    private GoogleApiClient mGoogleApiClient;
+    private LocationCallback mLocationCallback;
+
 
 
     private static final int  MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
@@ -76,18 +91,16 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
-        setSupportActionBar(myToolbar);
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        mGoogleApiClient = new GoogleApiClient
-                .Builder(this)
-                .addApi(Places.GEO_DATA_API)
-                .enableAutoManage(this, this)
-                .build();
-        checkAndRequestPermissions();
-        checkLocationSettings();
-
-
+        ImageButton searchButton = (ImageButton) findViewById(R.id.init_search);
+        searchButton.setOnClickListener(new Button.OnClickListener() {
+            public void onClick(View v) {
+                String url = buildURL(mCurrentLocation.getLatitude(),mCurrentLocation.getLongitude());
+                Intent intent = new Intent(getApplicationContext(),Restaurant.class);
+                intent.putExtra("reqUrl",url);
+                startActivity(intent);
+            }
+        });
+        setupLocationServices();
     }
     @Override
     public void onConnectionFailed(ConnectionResult result) {
@@ -95,76 +108,57 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
         // could not be established. Display an error message, or handle
         // the failure silently
 
-        // TODO: On connection to google play failed
-    }
+        Toast.makeText(MainActivity.this,"Error connecting to Google play services",Toast.LENGTH_LONG).show();    }
 
-    private void getRestaurant(){
-        RequestQueue queue = Volley.newRequestQueue(this);
+    private void setupLocationServices(){
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        String req = buildURL();
-        JsonObjectRequest jsObjRequest = new JsonObjectRequest
-                (Request.Method.GET, req, null, new Response.Listener<JSONObject>() {
-
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        try{
-                            JSONArray results = response.getJSONArray("results");
-                            Random rn = new Random();
-                            int i = rn.nextInt(response.length());
-                            String placeId = results.getJSONObject(i).getString("place_id");
-                            Places.GeoDataApi.getPlaceById(mGoogleApiClient,placeId)
-                                    .setResultCallback(new ResultCallback<PlaceBuffer>() {
-                                        @Override
-                                        public void onResult(@NonNull PlaceBuffer places) {
-                                            if(places.getStatus().isSuccess()){
-                                                Place rest = places.get(0);
-                                                //TODO: OPen new page with info
-                                            }else{
-                                                Log.d(TAG,"Error finding place by ID");
-                                            }
-                                        }
-                                    });
-
-
-                        }catch (JSONException e){
-                            Log.d(TAG,"Error parsing JSON Response");
-                            Toast.makeText(MainActivity.this, "Error Parsing Json. Try Again.", Toast.LENGTH_LONG).show();
-                        }
-                    }
-                }, new Response.ErrorListener() {
-
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        // TODO Auto-generated method stub
-                        Toast.makeText(MainActivity.this, "Error retrieving restaurant. Try Again.", Toast.LENGTH_LONG).show();
-                    }
-                });
-        queue.add(jsObjRequest);
-
-    }
-
-    private void getLocation() {
+        mLocationCallback = new LocationCallback(){
+            @Override
+            public void onLocationResult(LocationResult locationResult){
+                for (Location loc : locationResult.getLocations()){
+                    mCurrentLocation =loc;
+                }
+            }
+        };
+        checkAndRequestPermissions();
+        checkLocationSettings();
         try{
-            mFusedLocationClient.getLastLocation()
-                    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
-                        @Override
-                        public void onSuccess(Location location) {
-                            // Got last known location. In some rare situations this can be null.
-                            if (location != null) {
-                                mCurrentLocation = location;
-
-                            }
-                        }
-                    });
-        }catch(SecurityException e){
+            mFusedLocationClient.requestLocationUpdates(buildLocationRequest(),mLocationCallback,null);
+        }catch (SecurityException e){
             checkAndRequestPermissions();
-            getLocation();
+            setupLocationServices();
         }
     }
 
-    private String buildURL(){
+    public static JSONObject getJSONObjectFromURL(String urlString) throws java.io.IOException, JSONException {
+        HttpURLConnection urlConnection = null;
+        URL url = new URL(urlString);
+        urlConnection = (HttpURLConnection) url.openConnection();
+        urlConnection.setRequestMethod("GET");
+        urlConnection.setReadTimeout(10000 /* milliseconds */ );
+        urlConnection.setConnectTimeout(15000 /* milliseconds */ );
+        urlConnection.setDoOutput(true);
+        urlConnection.connect();
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()));
+        StringBuilder sb = new StringBuilder();
+
+        String line;
+        while ((line = br.readLine()) != null) {
+            sb.append(line + "\n");
+        }
+        br.close();
+
+        String jsonString = sb.toString();
+
+        return new JSONObject(jsonString);
+    }
+
+
+    private String buildURL(double lat, double lon){
         ///Necessary Settings
-        String url = baseUrl+"location="+mCurrentLocation.getLatitude()+","+mCurrentLocation.getLongitude()+
+        String url = baseUrl+"location="+lat+","+lon+
                         "&radius="+radius+"&type="+type+"&opennow=true";
         //Optional
         if(keywords.length>0){
@@ -179,9 +173,10 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
         if(!maxPrice.equals("4")){
             url+="&maxPrice="+maxPrice;
         }
-        url += "&keyword="+googleApiKey;
+        url += "&key="+googleApiKey;
         return url;
     }
+
 
     private LocationRequest createLocationRequest() {
         LocationRequest mLocationRequest = new LocationRequest();
@@ -192,7 +187,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     }
 
     private void checkLocationSettings(){
-        LocationRequest mLocationRequest = createLocationRequest();
+        LocationRequest mLocationRequest = buildLocationRequest();
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
                 .addLocationRequest(mLocationRequest);
         SettingsClient client = LocationServices.getSettingsClient(this);
@@ -228,7 +223,13 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
         });
 
     }
-
+    private LocationRequest buildLocationRequest(){
+        LocationRequest request = createLocationRequest()
+                .setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY)
+                .setFastestInterval(2000)
+                .setInterval(4000);
+        return request;
+    }
     private void checkAndRequestPermissions(){
         int permissionCheck = ContextCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION);
@@ -261,3 +262,5 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     }
 
 }
+
+
