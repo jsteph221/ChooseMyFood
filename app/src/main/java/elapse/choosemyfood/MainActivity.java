@@ -1,30 +1,29 @@
 package elapse.choosemyfood;
 
+import elapse.choosemyfood.Restaurant;
+
+
 import android.Manifest;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.location.LocationListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.AsyncTaskLoader;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
-import com.android.volley.RequestQueue;
-import com.android.volley.toolbox.Volley;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.CommonStatusCodes;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -35,21 +34,15 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
+import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.PlaceBuffer;
 import com.google.android.gms.location.places.Places;
-import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 
-
-import com.android.volley.Request;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -76,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     private String maxPrice = "4";
     private static final String openNow = "true";
     private static final String type = "restaurant";
-
+    private GoogleApiClient mGoogleApiClient;
 
     private FusedLocationProviderClient mFusedLocationClient;
     private LocationCallback mLocationCallback;
@@ -94,10 +87,8 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
         ImageButton searchButton = (ImageButton) findViewById(R.id.init_search);
         searchButton.setOnClickListener(new Button.OnClickListener() {
             public void onClick(View v) {
-                String url = buildURL(mCurrentLocation.getLatitude(),mCurrentLocation.getLongitude());
-                Intent intent = new Intent(getApplicationContext(),Restaurant.class);
-                intent.putExtra("reqUrl",url);
-                startActivity(intent);
+                String url = buildSearchUrl(mCurrentLocation.getLatitude(),mCurrentLocation.getLongitude());
+                new AsyncRestaurantReq().execute(url,null,null);
             }
         });
         setupLocationServices();
@@ -112,7 +103,11 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
 
     private void setupLocationServices(){
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-
+        mGoogleApiClient = new GoogleApiClient
+                .Builder(this)
+                .addApi(Places.GEO_DATA_API)
+                .enableAutoManage(this, this)
+                .build();
         mLocationCallback = new LocationCallback(){
             @Override
             public void onLocationResult(LocationResult locationResult){
@@ -156,10 +151,11 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     }
 
 
-    private String buildURL(double lat, double lon){
+
+    private String buildSearchUrl(double lat, double lon){
         ///Necessary Settings
         String url = baseUrl+"location="+lat+","+lon+
-                        "&radius="+radius+"&type="+type+"&opennow=true";
+                "&radius="+radius+"&type="+type+"&opennow=true";
         //Optional
         if(keywords.length>0){
             url+="&keyword=";
@@ -176,6 +172,14 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
         url += "&key="+googleApiKey;
         return url;
     }
+
+    private String buildDetailsUrl(String id){
+        String url = "https://maps.googleapis.com/maps/api/place/details/json?"+"placeid="+
+                id+"&key="+googleApiKey;
+        return url;
+
+    }
+
 
 
     private LocationRequest createLocationRequest() {
@@ -259,6 +263,52 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
             // other 'case' lines to check for other
             // permissions this app might request
         }
+    }
+    class AsyncRestaurantReq extends AsyncTask<String,Void,Restaurant> {
+        @Override
+        protected void onPreExecute() {
+
+            //display progress dialog.
+        }
+        @Override
+        protected Restaurant doInBackground(String... params) {
+            Restaurant restaurant = null;
+            try{
+                JSONObject resp = getJSONObjectFromURL(params[0]);
+                JSONArray results = resp.getJSONArray("results");
+                Random rn = new Random();
+                int i  =  rn.nextInt(results.length());
+                String id= results.getJSONObject(i).getString("place_id");
+                JSONObject details = getJSONObjectFromURL(buildDetailsUrl(id));
+                if (details.getString("status").equals("OK")){
+                    restaurant = new Restaurant(details.getJSONObject("result"));
+                }
+
+            }catch(JSONException e){
+                Toast.makeText(MainActivity.this, "Error Parsing Json. Try Again.", Toast.LENGTH_LONG).show();
+                Log.d(TAG,e.getMessage());
+
+            }catch (IOException e){
+                Toast.makeText(MainActivity.this, "Error io. Try Again.", Toast.LENGTH_LONG).show();
+                Log.d(TAG,e.getMessage());
+            }
+            return restaurant;
+
+        }
+        @Override
+        protected void onPostExecute(final Restaurant res) {
+            if(res != null){
+                Intent intent = new Intent(MainActivity.this,ShowActivity.class);
+                intent.putExtra("restaurantAttrs",res);
+                startActivity(intent);
+
+            }else{
+                Toast.makeText(MainActivity.this,"Places error",Toast.LENGTH_LONG).show();
+            }
+
+
+        }
+
     }
 
 }
