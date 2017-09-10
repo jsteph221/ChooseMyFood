@@ -8,12 +8,13 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
+import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -22,10 +23,9 @@ import android.widget.Toast;
 
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Random;
 
-import elapse.choosemyfood.Restaurant;
-
-import static android.R.attr.dial;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 
@@ -38,56 +38,116 @@ public class ShowActivity extends AppCompatActivity{
     private static final String googleApiKey = "AIzaSyCcndRN1-FqszyIMNj8m4Goa2C3U5rofqM";
 
 
-    private Restaurant restaurant;
     private static final String TAG = "ShowActivity";
 
     private String name;
     private String address;
     private String phone;
+    private String websiteUrl;
+    private String photoRef;
     private Bitmap imgSrc;
+
+    private String latLong;
+    private ArrayList<String> placeIds;
+
+    private RestaurantRequest restReq;
+    private Random rn;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState ){
         super.onCreate(savedInstanceState);
-        restaurant = (Restaurant) getIntent().getParcelableExtra("restaurantAttrs");
-        setContentView(R.layout.activity_restaurant);
-        setupRestaurant(restaurant);
-        setupView(restaurant);
-
+        rn = new Random();
+        latLong = (String) getIntent().getStringExtra("lat_long");
+        boolean fullSearch = getIntent().getBooleanExtra("full_search",true);
+        if (fullSearch){
+            restReq = new RestaurantRequest(getApplicationContext(), new VolleyIdCallback() {
+                @Override
+                public void onSuccess(ArrayList<String> ids) {
+                    placeIds = ids;
+                    getRestaurantDetails(placeIds.get(rn.nextInt(placeIds.size())));
+                }
+            });
+            restReq.executeFullSearch(latLong);
+        }else{
+            int i = rn.nextInt(placeIds.size());
+            getRestaurantDetails(placeIds.get(i));
+        }
+    }
+    private void getRestaurantDetails(String placeId){
+        restReq = new RestaurantRequest(getApplicationContext(), new VolleyDetailCallback() {
+            @Override
+            public void onSuccess(Restaurant restaurant) {
+                if (placeIds.size() < 5){
+                    String text = "Only "+placeIds.size()+" choices. Consider changing settings for more options";
+                    Toast toast = Toast.makeText(getApplicationContext(),text,Toast.LENGTH_SHORT);
+                    toast.show();
+                }
+                setupRestaurant(restaurant);
+                setupView();
+            }
+        });
+        restReq.executeDetailSearch(placeId);
     }
 
     private void setupRestaurant(Restaurant r){
         this.name = r.name;
         this.address = r.address;
         this.phone = r.phone;
-        getPhoto(r.photo);
+        this.photoRef = r.photo;
+        this.websiteUrl = r.website;
     }
 
-    private void setupView(Restaurant restaurant){
+    private void setupView(){
+        setContentView(R.layout.activity_restaurant);
+        getPhoto(this.photoRef);
+        //Button searchButton = (Button) findViewById(R.id.search_again);
+        //searchButton.setOnClickListener(new Button.OnClickListener() {
+          //  public void onClick(View v) {
+        //        int i= rn.nextInt(placeIds.size());
+        //        getRestaurantDetails(placeIds.get(i));
+        //    }
+       // });
         TextView name = (TextView) findViewById(R.id.name);
         TextView address = (TextView) findViewById(R.id.address);
-        TextView phone = (TextView) findViewById(R.id.phone);
-        ImageView photo = (ImageView) findViewById(R.id.photo);
-        ImageButton call = (ImageButton) findViewById(R.id.call);
+        ImageButton callButton = (ImageButton) findViewById(R.id.call);
+        ImageButton openWebsiteButton = (ImageButton) findViewById((R.id.website));
+        ImageButton directionsButton = (ImageButton) findViewById(R.id.website);
 
         name.setText(this.name);
         address.setText(this.address);
-        phone.setText(this.phone);
-        call.setOnClickListener(new ImageButton.OnClickListener() {
+        callButton.setOnClickListener(new ImageButton.OnClickListener() {
             public void onClick(View v) {
                 checkAndRequestCallPermissions();
             }
         });
+        final String tmpName = this.name;
+        openWebsiteButton.setOnClickListener(new ImageButton.OnClickListener(){
+
+            public void onClick(View v){
+                String url = "https://www.google.com/maps/dir/?api=1&destination=";
+                url = url+tmpName.replaceAll(" ","+");
+                Intent i = new Intent(Intent.ACTION_VIEW,Uri.parse(url));
+                startActivity(i);
+            }
+        });
+        directionsButton.setOnClickListener(new ImageButton.OnClickListener(){
+            public void onClick(View v){
+                Intent i = new Intent(Intent.ACTION_VIEW);
+                i.setData(Uri.parse(websiteUrl));
+                startActivity(i);
+            }
+        });
+
     }
 
     private void callNumber(){
-        startActivity(new Intent(Intent.ACTION_DIAL, Uri.parse(this.phone)));
+        String number = "tel:"+this.phone;
+        startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse(number)));
     }
 
-    private void searchForRestaurant(){
 
-    }
+
     private void getPhoto(String ref){
         new AsyncTask<String, Void, Void>() {
             @Override
@@ -105,9 +165,11 @@ public class ShowActivity extends AppCompatActivity{
 
             @Override
             protected void onPostExecute(Void result) {
+                ImageView photo = (ImageView) findViewById(R.id.photo);
                 if (imgSrc != null){
-                    ImageView photo = (ImageView) findViewById(R.id.photo);
                     photo.setImageBitmap(imgSrc);
+                }else{
+                    photo.setImageResource(R.drawable.no_image_available);
                 }
 
             }
@@ -137,6 +199,7 @@ public class ShowActivity extends AppCompatActivity{
 
                 } else {
                     //TODO: Notify permissions needed
+
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
                 }
@@ -146,13 +209,9 @@ public class ShowActivity extends AppCompatActivity{
             // permissions this app might request
         }
     }
-
-
-
-
-
-
 }
+
+
 
 
 
