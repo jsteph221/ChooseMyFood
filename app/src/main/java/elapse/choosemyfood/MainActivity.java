@@ -68,16 +68,23 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
                 if (loc == null){
                     Toast.makeText(MainActivity.this,"Error getting Location.Verify location is on.",Toast.LENGTH_SHORT);
                 }else{
-                    String latlong = loc.getLatitude()+","+loc.getLongitude();
-                    Intent intent = new Intent(MainActivity.this,ShowActivity.class);
-                    intent.putExtra("lat_long",latlong);
-                    intent.putExtra("full_search",true);
-                    startActivity(intent);
+                    initSearch();
                 }
             }
         });
         setupLocationServices();
         
+    }
+    private void initSearch(){
+        checkLocationSettings();
+    }
+    private void search(){
+        Location loc = PreferencesSingleton.getInstance().getLocation();
+        String latlong = loc.getLatitude()+","+loc.getLongitude();
+        Intent intent = new Intent(MainActivity.this,ShowActivity.class);
+        intent.putExtra("lat_long",latlong);
+        intent.putExtra("full_search",true);
+        startActivity(intent);
     }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -122,7 +129,6 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
             }
         };
         checkAndRequestPermissions();
-        checkLocationSettings();
         try{
             mFusedLocationClient.requestLocationUpdates(buildLocationRequest(),mLocationCallback,null);
         }catch (SecurityException e){
@@ -132,13 +138,7 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
     }
 
 
-    private LocationRequest createLocationRequest() {
-        LocationRequest mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(400000);
-        mLocationRequest.setFastestInterval(20000);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
-        return mLocationRequest;
-    }
+
 
     private void checkLocationSettings(){
         LocationRequest mLocationRequest = buildLocationRequest();
@@ -149,6 +149,7 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
         task.addOnSuccessListener(this, new OnSuccessListener<LocationSettingsResponse>(){
             @Override
             public void onSuccess (LocationSettingsResponse resp){
+                search();
             }
         });
         task.addOnFailureListener(this, new OnFailureListener() {
@@ -158,8 +159,6 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
                 switch (statusCode) {
                     case CommonStatusCodes.RESOLUTION_REQUIRED:
                         try {
-                            // Show the dialog by calling startResolutionForResult(),
-                            // and check the result in onActivityResult().
                             ResolvableApiException resolvable = (ResolvableApiException) e;
                             resolvable.startResolutionForResult(MainActivity.this,
                                     REQUEST_CHECK_SETTINGS);
@@ -168,9 +167,6 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
                         }
                         break;
                     case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
-                        // Location settings are not satisfied. However, we have no way
-                        // to fix the settings so we won't show the dialog.
-
                         break;
                 }
             }
@@ -178,10 +174,10 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
 
     }
     private LocationRequest buildLocationRequest(){
-        LocationRequest request = createLocationRequest()
+        LocationRequest request = new LocationRequest()
                 .setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY)
-                .setFastestInterval(2000)
-                .setInterval(4000);
+                .setFastestInterval(5000)
+                .setInterval(10000);
         return request;
     }
     private void checkAndRequestPermissions(){
@@ -200,14 +196,9 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
-
                 } else {
-                    //TODO: Notify permissions needed
-
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
+                    Toast.makeText(MainActivity.this,"This app requires position permissions to function.",Toast.LENGTH_SHORT);
+                    ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
                 }
             }
 

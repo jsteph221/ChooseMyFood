@@ -47,14 +47,14 @@ public class RestaurantRequest  {
         getRestaurantDetails(placeId);
     }
     public void executeFullSearch(String latLng){
-        getPlaceIds(buildSearchUrl(latLng));
+        getPlaceIds(buildRadarUrl());
     }
 
 
-    private String buildSearchUrl(String latLong){
+    private String buildSearchUrl(){
         PreferencesSingleton options = PreferencesSingleton.getInstance();
         ///Necessary Settings
-        String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location="+latLong+
+        String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location="+options.getLocation().getLatitude()+","+options.getLocation().getLongitude()+
                 "&radius="+options.getRadius()+"&type=restaurant"+"&opennow=true";
 
         if(options.getKeywords().length>0){
@@ -70,6 +70,27 @@ public class RestaurantRequest  {
             url+="&maxPrice="+options.getMaxPrice();
         }
         return url+"&key="+googleApiKey;
+    }
+
+    private String buildRadarUrl(){
+        PreferencesSingleton options = PreferencesSingleton.getInstance();
+        String base = "https://maps.googleapis.com/maps/api/place/radarsearch/json?parameters";
+        base +="location="+options.getLocation().getLatitude()+","+options.getLocation().getLongitude()+
+        "&radius="+options.getRadius()+"&type=restaurant"+"&opennow=true";
+        if(options.getKeywords().length>0){
+            base+="&keyword=";
+            for(String word : options.getKeywords()){
+                base+= word+"+";
+            }
+        }
+        if (!options.getMinPrice().equals("0")){
+            base+= "&minPrice="+options.getMinPrice();
+        }
+        if(!options.getMaxPrice().equals("4")){
+            base+="&maxPrice="+options.getMaxPrice();
+        }
+        return base+"&key="+googleApiKey;
+
     }
     private String buildDetailsUrl(String id){
         String url = "https://maps.googleapis.com/maps/api/place/details/json?"+"placeid="+

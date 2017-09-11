@@ -44,11 +44,7 @@ public class ShowActivity extends AppCompatActivity{
 
     private static final String TAG = "ShowActivity";
 
-    private String name;
-    private String address;
-    private String phone;
-    private String websiteUrl;
-    private String photoRef;
+    private Restaurant currentRest;
     private Bitmap imgSrc;
 
     private String latLong;
@@ -123,15 +119,11 @@ public class ShowActivity extends AppCompatActivity{
     }
 
     private void setupRestaurant(Restaurant r){
-        this.name = r.name;
-        this.address = r.address;
-        this.phone = r.phone;
-        this.photoRef = r.photo;
-        this.websiteUrl = r.website;
+        this.currentRest = r;
     }
 
     private void setupView(){
-        getPhoto(this.photoRef);
+        getPhoto(currentRest.photo);
         //Button searchButton = (Button) findViewById(R.id.search_again);
         //searchButton.setOnClickListener(new Button.OnClickListener() {
           //  public void onClick(View v) {
@@ -145,14 +137,14 @@ public class ShowActivity extends AppCompatActivity{
         ImageButton openWebsiteButton = (ImageButton) findViewById((R.id.website));
         ImageButton directionsButton = (ImageButton) findViewById(R.id.website);
 
-        name.setText(this.name);
-        address.setText(this.address);
+        name.setText(currentRest.name);
+        address.setText(currentRest.address);
         callButton.setOnClickListener(new ImageButton.OnClickListener() {
             public void onClick(View v) {
                 checkAndRequestCallPermissions();
             }
         });
-        final String tmpName = this.name;
+        final String tmpName = currentRest.name;
         openWebsiteButton.setOnClickListener(new ImageButton.OnClickListener(){
 
             public void onClick(View v){
@@ -165,7 +157,7 @@ public class ShowActivity extends AppCompatActivity{
         directionsButton.setOnClickListener(new ImageButton.OnClickListener(){
             public void onClick(View v){
                 Intent i = new Intent(Intent.ACTION_VIEW);
-                i.setData(Uri.parse(websiteUrl));
+                i.setData(Uri.parse(currentRest.website));
                 startActivity(i);
             }
         });
@@ -175,7 +167,7 @@ public class ShowActivity extends AppCompatActivity{
     }
 
     private void callNumber(){
-        String number = "tel:"+this.phone;
+        String number = "tel:"+this.currentRest;
         startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse(number)));
     }
 
