@@ -6,7 +6,7 @@ import android.location.Location;
  * Created by Joshua on 9/10/2017.
  */
 
-public class OptionsSingleton  {
+public class PreferencesSingleton {
     private String radius = "25000"; //Max 50000
     private String minPrice = "0";
     private String maxPrice = "4";
@@ -14,12 +14,19 @@ public class OptionsSingleton  {
     private Location location;
 
 
-    private static OptionsSingleton INSTANCE = new OptionsSingleton();
+    private static PreferencesSingleton INSTANCE = new PreferencesSingleton();
 
-    private OptionsSingleton() {};
+    private PreferencesSingleton() {};
+
+    public static PreferencesSingleton getInstance() {
+        return(INSTANCE);
+    }
 
     public void setMinPrice(String minPrice) {
         this.minPrice = minPrice;
+    }
+    public String getMinPrice(){
+        return this.minPrice;
     }
 
     public String getMaxPrice() {
@@ -45,5 +52,13 @@ public class OptionsSingleton  {
     public void setLocation(Location location) {
         this.location = location;
     }
-    
+    public String getRadius() {
+        return radius;
+    }
+
+    public void setRadius(String radius) {
+        this.radius = radius;
+    }
+
+
 }

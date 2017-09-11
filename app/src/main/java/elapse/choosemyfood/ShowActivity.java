@@ -13,6 +13,10 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -57,6 +61,14 @@ public class ShowActivity extends AppCompatActivity{
     @Override
     protected void onCreate(Bundle savedInstanceState ){
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_restaurant);
+        findViewById(R.id.progress_bar).setVisibility(View.VISIBLE);
+        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
+        if(myToolbar != null) {
+            setSupportActionBar(myToolbar);
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
+
         rn = new Random();
         latLong = (String) getIntent().getStringExtra("lat_long");
         boolean fullSearch = getIntent().getBooleanExtra("full_search",true);
@@ -72,6 +84,26 @@ public class ShowActivity extends AppCompatActivity{
         }else{
             int i = rn.nextInt(placeIds.size());
             getRestaurantDetails(placeIds.get(i));
+        }
+    }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main, menu);
+        MenuItem menuItem = menu.findItem(R.id.menu_settings);
+        menuItem.setVisible(false);
+        return true;
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+            default:
+
+                return super.onOptionsItemSelected(item);
+
         }
     }
     private void getRestaurantDetails(String placeId){
@@ -99,7 +131,6 @@ public class ShowActivity extends AppCompatActivity{
     }
 
     private void setupView(){
-        setContentView(R.layout.activity_restaurant);
         getPhoto(this.photoRef);
         //Button searchButton = (Button) findViewById(R.id.search_again);
         //searchButton.setOnClickListener(new Button.OnClickListener() {
@@ -138,6 +169,8 @@ public class ShowActivity extends AppCompatActivity{
                 startActivity(i);
             }
         });
+        findViewById(R.id.progress_bar).setVisibility(View.GONE);
+
 
     }
 

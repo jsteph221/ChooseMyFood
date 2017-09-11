@@ -1,21 +1,20 @@
 package elapse.choosemyfood;
 
-import elapse.choosemyfood.Restaurant;
-
 
 import android.Manifest;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -42,12 +41,9 @@ import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 
-import java.util.ArrayList;
-
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
-public class MainActivity extends AppCompatActivity implements OnConnectionFailedListener {
-    private Location mCurrentLocation;
+public class MainActivity extends AppCompatActivity  implements OnConnectionFailedListener {
     private GoogleApiClient mGoogleApiClient;
     private FusedLocationProviderClient mFusedLocationClient;
     private LocationCallback mLocationCallback;
@@ -58,19 +54,49 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
+        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
+        if(myToolbar != null) {
+            setSupportActionBar(myToolbar);
+            getSupportActionBar().openOptionsMenu();
+        }
         ImageButton searchButton = (ImageButton) findViewById(R.id.init_search);
         searchButton.setOnClickListener(new Button.OnClickListener() {
             public void onClick(View v) {
-                String latlong = mCurrentLocation.getLatitude()+","+mCurrentLocation.getLongitude();
-                Intent intent = new Intent(MainActivity.this,ShowActivity.class);
-                intent.putExtra("lat_long",latlong);
-                intent.putExtra("full_search",true);
-                startActivity(intent);
+                Location loc = PreferencesSingleton.getInstance().getLocation();
+                if (loc == null){
+                    Toast.makeText(MainActivity.this,"Error getting Location.Verify location is on.",Toast.LENGTH_SHORT);
+                }else{
+                    String latlong = loc.getLatitude()+","+loc.getLongitude();
+                    Intent intent = new Intent(MainActivity.this,ShowActivity.class);
+                    intent.putExtra("lat_long",latlong);
+                    intent.putExtra("full_search",true);
+                    startActivity(intent);
+                }
             }
         });
         setupLocationServices();
         
+    }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main, menu);
+        return true;
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_settings:
+                Intent i = new Intent(MainActivity.this, PreferencesActivity.class);
+                startActivity(i);
+                return true;
+            default:
+
+                return super.onOptionsItemSelected(item);
+
+        }
     }
     @Override
     public void onConnectionFailed(ConnectionResult result) {
@@ -91,7 +117,7 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
             @Override
             public void onLocationResult(LocationResult locationResult){
                 for (Location loc : locationResult.getLocations()){
-                    mCurrentLocation =loc;
+                    PreferencesSingleton.getInstance().setLocation(loc);
                 }
             }
         };
@@ -108,9 +134,9 @@ public class MainActivity extends AppCompatActivity implements OnConnectionFaile
 
     private LocationRequest createLocationRequest() {
         LocationRequest mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(20000);
-        mLocationRequest.setFastestInterval(10000);
-        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        mLocationRequest.setInterval(400000);
+        mLocationRequest.setFastestInterval(20000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
         return mLocationRequest;
     }
 

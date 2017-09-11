@@ -1,7 +1,6 @@
 package elapse.choosemyfood;
 
 import android.content.Context;
-import android.nfc.Tag;
 import android.os.Handler;
 import android.util.Log;
 
@@ -53,27 +52,24 @@ public class RestaurantRequest  {
 
 
     private String buildSearchUrl(String latLong){
+        PreferencesSingleton options = PreferencesSingleton.getInstance();
         ///Necessary Settings
         String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location="+latLong+
-                "&radius="+"5000"+"&type="+"restaurant"+"&opennow=true"+"&key="+googleApiKey;
-        //Optional
-        /*
-        if(keywords.length>0){
+                "&radius="+options.getRadius()+"&type=restaurant"+"&opennow=true";
+
+        if(options.getKeywords().length>0){
             url+="&keyword=";
-            for(String word : keywords){
-                url+= word+" ";
+            for(String word : options.getKeywords()){
+                url+= word+"+";
             }
         }
-        if (!minPrice.equals("0")){
-            url+= "&minPrice="+minPrice;
+        if (!options.getMinPrice().equals("0")){
+            url+= "&minPrice="+options.getMinPrice();
         }
-        if(!maxPrice.equals("4")){
-            url+="&maxPrice="+maxPrice;
+        if(!options.getMaxPrice().equals("4")){
+            url+="&maxPrice="+options.getMaxPrice();
         }
-        url += "&key="+googleApiKey;
-        return url;
-        */
-        return url;
+        return url+"&key="+googleApiKey;
     }
     private String buildDetailsUrl(String id){
         String url = "https://maps.googleapis.com/maps/api/place/details/json?"+"placeid="+

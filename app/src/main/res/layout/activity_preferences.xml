@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context="elapse.choosemyfood.MainActivity">
-
+    android:layout_width="match_parent" android:layout_height="match_parent">
     <android.support.v7.widget.Toolbar
         android:id="@+id/my_toolbar"
         android:layout_width="match_parent"
@@ -15,7 +11,7 @@
         android:layout_marginTop="0dp"
         android:background="@color/colorPrimary"
         android:elevation="4dp"
-        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
+        app:theme="@style/ThemeOverlay.AppCompat"
         app:titleTextColor="@color/colorAccent"
         app:title="@string/app_name"
         app:layout_constraintHorizontal_bias="0.0"
@@ -25,14 +21,10 @@
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
         />
 
-    <ImageButton
-        android:id="@+id/init_search"
+    <NumberPicker
+        android:id="@+id/max_radius"
         android:layout_width="wrap_content"
-        android:layout_height="409dp"
-        android:cropToPadding="false"
-        android:visibility="visible"
-        app:srcCompat="@android:drawable/ic_media_play"
-        tools:layout_editor_absoluteX="152dp"
-        tools:layout_editor_absoluteY="103dp" />
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true" />
 
-</android.support.constraint.ConstraintLayout>
+</RelativeLayout>
