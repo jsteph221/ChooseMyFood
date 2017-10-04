@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent" android:layout_height="match_parent">
+    android:id="@+id/preference_activity"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
     <android.support.v7.widget.Toolbar
         android:id="@+id/my_toolbar"
         android:layout_width="match_parent"
@@ -11,20 +14,127 @@
         android:layout_marginTop="0dp"
         android:background="@color/colorPrimary"
         android:elevation="4dp"
-        app:theme="@style/ThemeOverlay.AppCompat"
-        app:titleTextColor="@color/colorAccent"
-        app:title="@string/app_name"
+        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
-        />
+        app:title="@string/app_name"
+        app:titleTextColor="@color/colorAccent" />
 
-    <NumberPicker
+    <EditText
+        android:id="@+id/keywords"
+        android:layout_width="150dp"
+        android:layout_height="35dp"
+        android:hint="Enter Keyword"
+        android:maxLines="1"
+        android:textAlignment="center"
+        android:textSize="14sp"
+        android:layout_alignBaseline="@+id/keyword_text"
+        android:layout_alignBottom="@+id/keyword_text"
+        android:layout_toEndOf="@+id/keyword_text" />
+
+    <SeekBar
         android:id="@+id/max_radius"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/radius_text"
+        android:layout_alignStart="@+id/radius_text"
+        android:layout_below="@+id/radius_text"
+        android:indeterminateTint="@color/colorPrimary"
+        android:max="50"
+        android:min="1"
+        android:thumb="@drawable/ic_fork" />
+
+    <TextView
+        android:id="@+id/radius_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true" />
+        android:ems="10"
+        android:inputType="textPersonName"
+        android:text="Maximum Distance: "
+        android:textAlignment="viewStart"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_below="@+id/keyword_list"
+        android:layout_alignParentStart="true"
+        android:layout_alignEnd="@+id/max_price" />
+
+    <TextView
+        android:id="@+id/price_range"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="textPersonName"
+        android:text="Min Price"
+        android:textAlignment="viewStart"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_below="@+id/max_radius"
+        android:layout_alignParentStart="true"
+        android:layout_toStartOf="@+id/keywords" />
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="textPersonName"
+        android:text="Max Price"
+        android:textAlignment="viewStart"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_below="@+id/max_radius"
+        android:layout_alignParentEnd="true"
+        android:layout_alignStart="@+id/keyword_add" />
+
+    <NumberPicker
+        android:id="@+id/min_price"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/price_range"
+        android:layout_alignEnd="@+id/price_range"
+        android:layout_marginTop="0dp" />
+
+    <NumberPicker
+        android:id="@+id/max_price"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="visible"
+        android:layout_below="@+id/textView"
+        android:layout_alignLeft="@+id/textView"
+        android:layout_marginTop="0dp"/>
+
+
+    <ImageButton
+        android:id="@+id/keyword_add"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:layout_below="@+id/my_toolbar"
+        android:layout_toEndOf="@+id/keywords"
+        android:layout_toRightOf="@+id/keywords"
+        android:elevation="0dp"
+        app:srcCompat="@android:drawable/ic_input_add" />
+
+    <GridView
+        android:id="@+id/keyword_list"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/keywords"
+        android:layout_centerHorizontal="true"
+        android:horizontalSpacing="0dp"
+        android:numColumns="3"
+        />
+
+    <TextView
+        android:id="@+id/keyword_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/my_toolbar"
+        android:text="Keywords"
+        android:textSize="18sp"
+        android:textStyle="bold" />
 
 </RelativeLayout>

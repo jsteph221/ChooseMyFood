@@ -11,21 +11,21 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
- * Created by Joshua on 9/7/2017.
+ * Class to hold restaurant details
  */
 
 public class Restaurant {
-    public String name;
-    public String address;
-    public String phone;
-    public String website ;
-    public String location;
-    public String price;
-    public String rating;
-    public String photo;
-    public String closesAt;
+    protected String name;
+    protected String address;
+    protected String phone;
+    protected String website ;
+    protected String location;
+    protected String price;
+    protected String rating;
+    protected String photo;
+    protected String closesAt;
 
-    public Restaurant(JSONObject param){
+    protected Restaurant(JSONObject param){
             this.name = getAttribute(param,"name");
             this.address = getAttribute(param,"formatted_address");
             this.phone = getAttribute(param,"formatted_phone_number");
@@ -47,7 +47,7 @@ public class Restaurant {
 
 
     }
-    public String getAttribute(JSONObject param, String attr){
+    protected String getAttribute(JSONObject param, String attr){
         try{
             String res = param.getString(attr);
             return res;

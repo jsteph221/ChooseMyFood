@@ -7,5 +7,6 @@ import java.util.ArrayList;
  */
 
 public interface VolleyIdCallback {
-    public void onSuccess(ArrayList<String> ids);
+    void onSuccess(ArrayList<String> ids);
+    void onFailure();
 }

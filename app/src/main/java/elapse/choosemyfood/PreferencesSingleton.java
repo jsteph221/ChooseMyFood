@@ -2,21 +2,23 @@ package elapse.choosemyfood;
 
 import android.location.Location;
 
+import java.util.ArrayList;
+
 /**
- * Created by Joshua on 9/10/2017.
+ * Singleton to hold global preferences and location.
  */
 
 public class PreferencesSingleton {
-    private String radius = "25000"; //Max 50000
+    private String radius = "25000";
     private String minPrice = "0";
     private String maxPrice = "4";
-    private String[] keywords ={};
+    private ArrayList<String>keywords = new ArrayList<String>();
     private Location location;
 
 
     private static PreferencesSingleton INSTANCE = new PreferencesSingleton();
 
-    private PreferencesSingleton() {};
+    private PreferencesSingleton() {}
 
     public static PreferencesSingleton getInstance() {
         return(INSTANCE);
@@ -37,11 +39,11 @@ public class PreferencesSingleton {
         this.maxPrice = maxPrice;
     }
 
-    public String[] getKeywords() {
+    public ArrayList<String> getKeywords() {
         return keywords;
     }
 
-    public void setKeywords(String[] keywords) {
+    public void setKeywords(ArrayList keywords) {
         this.keywords = keywords;
     }
 
@@ -59,6 +61,7 @@ public class PreferencesSingleton {
     public void setRadius(String radius) {
         this.radius = radius;
     }
+
 
 
 }

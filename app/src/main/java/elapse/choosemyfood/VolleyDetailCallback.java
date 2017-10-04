@@ -7,5 +7,6 @@ import java.util.ArrayList;
  */
 
 public interface VolleyDetailCallback {
-    public void onSuccess(Restaurant rest);
+    void onSuccess(Restaurant rest);
+    void onFailure();
 }

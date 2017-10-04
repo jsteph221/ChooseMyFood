@@ -8,12 +8,11 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -21,6 +20,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,20 +34,18 @@ import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 
 /**
- * Created by Joshua on 9/6/2017.
+ * Main activity to launch,get location, and init searches
  */
 
 public class ShowActivity extends AppCompatActivity{
     private static final int  MY_PERMISSIONS_REQUEST_CALL_PHONE = 1;
     private static final String googleApiKey = "AIzaSyCcndRN1-FqszyIMNj8m4Goa2C3U5rofqM";
 
-
     private static final String TAG = "ShowActivity";
 
     private Restaurant currentRest;
     private Bitmap imgSrc;
 
-    private String latLong;
     private ArrayList<String> placeIds;
 
     private RestaurantRequest restReq;
@@ -62,32 +60,36 @@ public class ShowActivity extends AppCompatActivity{
         Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
         if(myToolbar != null) {
             setSupportActionBar(myToolbar);
+            getSupportActionBar().openOptionsMenu();
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
         rn = new Random();
-        latLong = (String) getIntent().getStringExtra("lat_long");
-        boolean fullSearch = getIntent().getBooleanExtra("full_search",true);
-        if (fullSearch){
-            restReq = new RestaurantRequest(getApplicationContext(), new VolleyIdCallback() {
-                @Override
-                public void onSuccess(ArrayList<String> ids) {
-                    placeIds = ids;
-                    getRestaurantDetails(placeIds.get(rn.nextInt(placeIds.size())));
-                }
-            });
+        String latLong = (String) getIntent().getStringExtra("lat_long");
+         restReq = new RestaurantRequest(getApplicationContext(), new VolleyIdCallback() {
+            @Override
+            public void onSuccess(ArrayList<String> ids) {
+                placeIds = ids;
+                 getRestaurantDetails();
+              }
+             @Override
+             public void onFailure() {
+                 Toast.makeText(ShowActivity.this,"Error retrieving information from google.",Toast.LENGTH_LONG).show();
+                 View progressBar = findViewById(R.id.progress_bar);
+                 if (progressBar.getVisibility() == View.VISIBLE){
+                     progressBar.setVisibility(View.INVISIBLE);
+                 }
+
+             }
+           });
             restReq.executeFullSearch(latLong);
-        }else{
-            int i = rn.nextInt(placeIds.size());
-            getRestaurantDetails(placeIds.get(i));
-        }
+
     }
+    //Options Menu initialization and setting
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.main, menu);
-        MenuItem menuItem = menu.findItem(R.id.menu_settings);
-        menuItem.setVisible(false);
         return true;
     }
     @Override
@@ -96,56 +98,93 @@ public class ShowActivity extends AppCompatActivity{
             case android.R.id.home:
                 finish();
                 return true;
+            case R.id.menu_settings:
+                Intent i = new Intent(ShowActivity.this, PreferencesActivity.class);
+                i.putExtra("from_show",true);
+                startActivity(i);
+                return true;
             default:
 
                 return super.onOptionsItemSelected(item);
 
         }
     }
-    private void getRestaurantDetails(String placeId){
-        restReq = new RestaurantRequest(getApplicationContext(), new VolleyDetailCallback() {
-            @Override
-            public void onSuccess(Restaurant restaurant) {
-                if (placeIds.size() < 5){
-                    String text = "Only "+placeIds.size()+" choices. Consider changing settings for more options";
-                    Toast toast = Toast.makeText(getApplicationContext(),text,Toast.LENGTH_SHORT);
-                    toast.show();
-                }
-                setupRestaurant(restaurant);
-                setupView();
+    //Choose random restaurant from the placeIds retrieved and request details.
+    private void getRestaurantDetails(){
+        View progressBar = findViewById(R.id.progress_bar);
+        if (progressBar.getVisibility() == View.INVISIBLE){
+            progressBar.setVisibility(View.VISIBLE);
+        }
+        int i = rn.nextInt(placeIds.size());
+        if (placeIds.size() ==0 ){
+            Toast.makeText(getApplicationContext(),"No Restaurant fitting criteria found. Consider changing settings.",Toast.LENGTH_SHORT).show();
+        }
+        else{
+            if(placeIds.size()<4){
+                String text = "Only "+placeIds.size()+" restaurants fitting your criteria";
+                Toast toast = Toast.makeText(getApplicationContext(),text,Toast.LENGTH_SHORT);
+                toast.show();
             }
-        });
-        restReq.executeDetailSearch(placeId);
+            restReq = new RestaurantRequest(getApplicationContext(), new VolleyDetailCallback() {
+                @Override
+                public void onSuccess(Restaurant restaurant) {
+                    if (restaurant !=  null){
+                        currentRest = restaurant;
+                        getPhoto(currentRest.photo);
+                    }else{
+                        Toast.makeText(getApplicationContext(),"Error retrieving information. Try again.",Toast.LENGTH_SHORT).show();
+                    }
+                }
+                @Override
+                public void onFailure() {
+                    Toast.makeText(ShowActivity.this,"Error retrieving restaurant. Try again.",Toast.LENGTH_LONG);
+                }
+            });
+            restReq.executeDetailSearch(placeIds.get(i));
+        }
     }
-
-    private void setupRestaurant(Restaurant r){
-        this.currentRest = r;
-    }
-
+    //Set values of Views.
     private void setupView(){
-        getPhoto(currentRest.photo);
-        //Button searchButton = (Button) findViewById(R.id.search_again);
-        //searchButton.setOnClickListener(new Button.OnClickListener() {
-          //  public void onClick(View v) {
-        //        int i= rn.nextInt(placeIds.size());
-        //        getRestaurantDetails(placeIds.get(i));
-        //    }
-       // });
+        setUpButtons();
+
         TextView name = (TextView) findViewById(R.id.name);
         TextView address = (TextView) findViewById(R.id.address);
-        ImageButton callButton = (ImageButton) findViewById(R.id.call);
-        ImageButton openWebsiteButton = (ImageButton) findViewById((R.id.website));
-        ImageButton directionsButton = (ImageButton) findViewById(R.id.website);
+
+        RatingBar priceBar = (RatingBar) findViewById(R.id.priceRatingBar);
+        RatingBar reviewRatingBar = (RatingBar) findViewById(R.id.reviewRatingBar);
 
         name.setText(currentRest.name);
         address.setText(currentRest.address);
+
+        if(!currentRest.rating.equals("")){
+            Float starRating = Float.parseFloat(currentRest.rating);
+            reviewRatingBar.setRating(starRating);
+            reviewRatingBar.setVisibility(View.VISIBLE);
+        }
+        if(!currentRest.price.equals("")){
+            Float starPrice = Float.parseFloat(currentRest.price);
+            priceBar.setRating(starPrice);
+            priceBar.setVisibility(View.VISIBLE);
+        }
+        View progressBar = findViewById(R.id.progress_bar);
+        if (progressBar.getVisibility() == View.VISIBLE){
+            progressBar.setVisibility(View.INVISIBLE);
+        }    }
+    //Initialize and set OnclickListeners
+    private void setUpButtons(){
+        ImageButton callButton = (ImageButton) findViewById(R.id.call);
+        ImageButton openWebsiteButton = (ImageButton) findViewById((R.id.website));
+        ImageButton directionsButton = (ImageButton) findViewById(R.id.directions);
+        Button searchButton = (Button) findViewById(R.id.search_again);
+
+
         callButton.setOnClickListener(new ImageButton.OnClickListener() {
             public void onClick(View v) {
                 checkAndRequestCallPermissions();
             }
         });
         final String tmpName = currentRest.name;
-        openWebsiteButton.setOnClickListener(new ImageButton.OnClickListener(){
+        directionsButton.setOnClickListener(new ImageButton.OnClickListener(){
 
             public void onClick(View v){
                 String url = "https://www.google.com/maps/dir/?api=1&destination=";
@@ -154,16 +193,18 @@ public class ShowActivity extends AppCompatActivity{
                 startActivity(i);
             }
         });
-        directionsButton.setOnClickListener(new ImageButton.OnClickListener(){
+        openWebsiteButton.setOnClickListener(new ImageButton.OnClickListener(){
             public void onClick(View v){
                 Intent i = new Intent(Intent.ACTION_VIEW);
                 i.setData(Uri.parse(currentRest.website));
                 startActivity(i);
             }
         });
-        findViewById(R.id.progress_bar).setVisibility(View.GONE);
-
-
+        searchButton.setOnClickListener(new Button.OnClickListener() {
+          public void onClick(View v) {
+                getRestaurantDetails();
+            }
+         });
     }
 
     private void callNumber(){
@@ -172,7 +213,8 @@ public class ShowActivity extends AppCompatActivity{
     }
 
 
-
+    //Retrieve photo given reference string from google.
+    //Then set as image source and call setupView()
     private void getPhoto(String ref){
         new AsyncTask<String, Void, Void>() {
             @Override
@@ -183,7 +225,7 @@ public class ShowActivity extends AppCompatActivity{
                     InputStream in = new URL(url).openStream();
                     imgSrc = BitmapFactory.decodeStream(in);
                 } catch (Exception e) {
-                    // log error
+                    Log.d(TAG,e.getMessage());
                 }
                 return null;
             }
@@ -196,11 +238,13 @@ public class ShowActivity extends AppCompatActivity{
                 }else{
                     photo.setImageResource(R.drawable.no_image_available);
                 }
+                setupView();
 
             }
 
         }.execute(ref);
     }
+    //Check permissions. If needed ask, else call
     private void checkAndRequestCallPermissions(){
         int permissionCheck = ContextCompat.checkSelfPermission(this,
                 Manifest.permission.CALL_PHONE);
@@ -210,6 +254,8 @@ public class ShowActivity extends AppCompatActivity{
             callNumber();
         }
     }
+
+    //Ask for permission and call if necessary
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            String permissions[], int[] grantResults) {
@@ -223,15 +269,10 @@ public class ShowActivity extends AppCompatActivity{
 
 
                 } else {
+                    Toast.makeText(this, "Cannot make call without your permission", Toast.LENGTH_SHORT).show();
                     //TODO: Notify permissions needed
-
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
                 }
             }
-
-            // other 'case' lines to check for other
-            // permissions this app might request
         }
     }
 }

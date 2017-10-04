@@ -12,6 +12,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -44,11 +45,10 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 
 public class MainActivity extends AppCompatActivity  implements OnConnectionFailedListener {
-    private GoogleApiClient mGoogleApiClient;
-    private FusedLocationProviderClient mFusedLocationClient;
-    private LocationCallback mLocationCallback;
     private static final int  MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
-    protected static final int REQUEST_CHECK_SETTINGS = 0x1;
+    private static final int REQUEST_CHECK_SETTINGS = 0x1;
+
+    private boolean LOCATION_GRANTED = false;
 
 
     @Override
@@ -65,10 +65,14 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
         searchButton.setOnClickListener(new Button.OnClickListener() {
             public void onClick(View v) {
                 Location loc = PreferencesSingleton.getInstance().getLocation();
-                if (loc == null){
-                    Toast.makeText(MainActivity.this,"Error getting Location.Verify location is on.",Toast.LENGTH_SHORT);
+                if(!LOCATION_GRANTED){
+                    Toast.makeText(MainActivity.this,"This app requires Location permissions to function.",Toast.LENGTH_SHORT);
                 }else{
-                    initSearch();
+                    if (loc == null){
+                        Toast.makeText(MainActivity.this,"Error getting Location.Verify location is on.",Toast.LENGTH_SHORT);
+                    }else{
+                        initSearch();
+                    }
                 }
             }
         });
@@ -83,7 +87,6 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
         String latlong = loc.getLatitude()+","+loc.getLongitude();
         Intent intent = new Intent(MainActivity.this,ShowActivity.class);
         intent.putExtra("lat_long",latlong);
-        intent.putExtra("full_search",true);
         startActivity(intent);
     }
     @Override
@@ -96,10 +99,15 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_settings:
+                //Intent i = new Intent(MainActivity.this, PreferencesActivity.class);
+                //startActivity(i);
+                //return true;
+                Log.d(MainActivity.this.getLocalClassName(),"Switch case ");
                 Intent i = new Intent(MainActivity.this, PreferencesActivity.class);
                 startActivity(i);
                 return true;
             default:
+                Log.d(MainActivity.this.getLocalClassName(),"Switch default ");
 
                 return super.onOptionsItemSelected(item);
 
@@ -114,13 +122,13 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
         Toast.makeText(MainActivity.this,"Error connecting to Google play services",Toast.LENGTH_LONG).show();    }
 
     private void setupLocationServices(){
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        mGoogleApiClient = new GoogleApiClient
+        FusedLocationProviderClient mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        GoogleApiClient mGoogleApiClient = new GoogleApiClient
                 .Builder(this)
                 .addApi(Places.GEO_DATA_API)
                 .enableAutoManage(this, this)
                 .build();
-        mLocationCallback = new LocationCallback(){
+        LocationCallback mLocationCallback = new LocationCallback(){
             @Override
             public void onLocationResult(LocationResult locationResult){
                 for (Location loc : locationResult.getLocations()){
@@ -185,6 +193,8 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
                 Manifest.permission.ACCESS_FINE_LOCATION);
         if (permissionCheck != PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+        }else{
+            LOCATION_GRANTED = true;
         }
     }
     @Override
@@ -195,10 +205,10 @@ public class MainActivity extends AppCompatActivity  implements OnConnectionFail
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    LOCATION_GRANTED = true;
 
                 } else {
-                    Toast.makeText(MainActivity.this,"This app requires position permissions to function.",Toast.LENGTH_SHORT);
-                    ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+                    Toast.makeText(MainActivity.this,"This app requires Location permissions to function.",Toast.LENGTH_SHORT);
                 }
             }
 
